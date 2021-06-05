@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Basic Breakout HTML Game</title>
+  <meta charset="UTF-8">
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  </style>
+</head>
+<body>
+<canvas width="600" height="600" id="game"></canvas>
+<script>
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+
+const wallSize = 12;
+
+var ballTotal = 200;
+
+ball = [];
+
+const ballWidth = 10;
+
+const recoveryTime = 300;
+
+const speedFactor = 3;
+
+var checkCounter = 0;
+
+var infectedCounter = 0;
+
+var recoveredCounter = 0;
+
+var diedCounter = 0;
+
+// check for collision between two objects using axis-aligned bounding box (AABB)
+// @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+function collides(obj1, obj2) {
+  return obj1.x < obj2.x + obj2.width &&
+         obj1.x + obj1.width > obj2.x &&
+         obj1.y < obj2.y + obj2.height &&
+         obj1.y + obj1.height > obj2.y;
+}
+
+function getRandomSpeed() {
+
+	var minSpeed = Math.random() + 0.2;
+	var negafy = Math.round(Math.random()) * 2 - 1;
+    var newSpeed = minSpeed * negafy;
+    return newSpeed;
+}
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
+function drawWalls(){
+    // draw walls
+  context.fillStyle = 'lightgrey';
+  context.fillRect(0, 0, canvas.width, wallSize);
+  context.fillRect(0, 0, wallSize, canvas.height);
+  context.fillRect(canvas.width - wallSize, 0, wallSize, canvas.height);
+  context.fillRect(0, canvas.height - wallSize, canvas.width + wallSize, canvas.height + wallSize, );
+}
+
+var i;
+for (i = 0; i < ballTotal; i++) {
+
+        ball[i] = {
+          x: getRandomInt(canvas.width),
+          y: getRandomInt(canvas.height),
+          width: ballWidth,
+          height: ballWidth,
+
+          // ball velocity
+          dx: getRandomSpeed(),
+          dy: getRandomSpeed(),
+          infected: 0,
+          infectedDays: 0,
+          recovered: 0,
+          mask: 1,
+          age: getRandomInt(100),
+          dead: 0
+        };
+}
+
+
+
+function updatePositions(){
+    var j;
+for (j = 0; j < ballTotal; j++) {
+
+  // move ball by it's velocity
+  ball[j].x += ball[j].dx;
+  ball[j].y += ball[j].dy;
+
+  // prevent ball from going through walls by changing its velocity
+  // left & right walls
+  if (ball[j].x < wallSize) {
+    ball[j].x = wallSize;
+    ball[j].dx = getRandomSpeed();
+    ball[j].dy = getRandomSpeed();
+  }
+  else if (ball[j].x + ball[j].width > canvas.width - wallSize) {
+    ball[j].x = canvas.width - wallSize - ball[j].width;
+    ball[j].dx = getRandomSpeed();
+    ball[j].dy = getRandomSpeed();
+  }
+  // top wall
+  if (ball[j].y < wallSize) {
+    ball[j].y = wallSize;
+    ball[j].dy = getRandomSpeed();
+    ball[j].dx = getRandomSpeed();
+  }
+
+   // bottom wall
+  if (ball[j].y  + ball[j].width > canvas.height - wallSize) {
+    ball[j].y = canvas.height - wallSize  - ball[j].width;
+    ball[j].dy = getRandomSpeed();
+    ball[j].dx = getRandomSpeed();
+  }
+}
+}
+
+
+
+function checkCollisions(){
+
+var j;
+for (j = 0; j < ballTotal; j++) {
+
+    ball[j].infectedDays--; 
+
+    if (ball[j].infected && ball[j].infectedDays == 1){
+
+
+    	var randX = Math.floor(Math.random() * 5);
+        if( randX == 1  ){                   
+         ball[j].dead = 1;
+         
+     	}
+
+
+    }
+
+ if(ball[j].infected == 0 && ball[j].recovered == 0 && ball[j].dead == 0){
+
+
+        var x1 = Math.ceil(ball[j].x);
+        var y1 = Math.ceil(ball[j].y);
+
+        var k;
+        for (k = 0; k < ballTotal; k++) {
+
+            if(j!=k){
+
+            var x2 = Math.ceil(ball[k].x);
+            var y2 = Math.ceil(ball[k].y);
+
+
+            var differenceX = Math.abs(x1 - x2); 
+            var differenceY = Math.abs(y1 - y2); 
+
+            
+            if(differenceX + differenceY < ballWidth){
+
+                if(ball[k].infected){
+
+                if(ball[k].mask){
+
+                    var randX = Math.floor(Math.random() * 10);
+                   if( randX == 1  ){                   
+                    ball[j].infected = 1;
+                    ball[j].infectedDays = recoveryTime;
+                  
+                    }
+                }
+                else{
+
+                var randY = Math.floor(Math.random() * 3);
+                    if( randY == 1  ){
+                    ball[j].infected = 1;
+                    ball[j].infectedDays = recoveryTime;
+                    
+                    }
+
+                }
+            }
+
+            }
+
+        }
+            
+
+        }
+    }
+}
+
+
+
+}
+
+
+
+function drawPeople(){
+
+    var j;
+    for (j = 0; j < ballTotal; j++) {
+
+
+     if (ball[j].infected && !ball[j].dead){
+
+        if (ball[j].infectedDays > 0){
+        context.fillStyle = "#ff0000";
+        infectedCounter++;
+        }
+        else{
+            ball[j].recovered = 1;
+            ball[j].infected = 0;
+            infectedCounter--;
+            recoveredCounter++;
+            context.fillStyle = "#ff9900";
+        }
+
+    }
+    else if (ball[j].recovered){
+        context.fillStyle = "#ff9900";
+        recoveredCounter++;
+    }
+    else if (ball[j].dead){
+        context.fillStyle = "#444444";
+        diedCounter++;
+    }
+    else{
+        context.fillStyle = "#00ff00";
+    }
+    
+    context.fillRect(ball[j].x, ball[j].y, ball[j].width, ball[j].height);
+    }
+}
+
+function updateText(){
+
+	context.font = "20px Arial";
+	context.fillStyle = "#ffffff";
+	context.fillText("Population: " + ball.length, 30, 50);
+	context.fillText("OK: " + (ball.length - infectedCounter - recoveredCounter - diedCounter), 30, 70);
+	context.fillText("Infected: " + infectedCounter, 30, 90);
+	context.fillText("Recovered: " + recoveredCounter, 30, 110);
+	context.fillText("Died: " + diedCounter, 30, 130);
+}
+
+
+// game loop
+function loop() {
+
+
+
+  requestAnimationFrame(loop);
+  context.clearRect(0,0,canvas.width,canvas.height);
+
+  infectedCounter=0;
+  recoveredCounter=0;
+  diedCounter=0;
+
+  checkCounter++;
+
+  drawWalls();
+
+  updatePositions();
+
+  if(checkCounter==10){
+    checkCounter=0;
+  checkCollisions();
+  }
+
+  drawPeople();
+
+  updateText();
+  
+}
+
+// listen to keyboard events to move the paddle
+document.addEventListener('keydown', function(e) {
+
+  // space key
+  // if they ball is not moving, we can launch the ball using the space key. ball
+  // will move towards the bottom right to start
+  if (e.which === 32) {
+
+    ball.push({
+          x: getRandomInt(canvas.width),
+          y: getRandomInt(canvas.height),
+          width: ballWidth,
+          height: ballWidth,
+
+          // ball velocity
+          dx: getRandomSpeed(),
+          dy: getRandomSpeed(),
+          infected: 1,
+          infectedDays: recoveryTime,
+          recovered: 0,
+          mask: 0,
+          age: getRandomInt(100),
+          dead: 0
+	});
+
+    ballTotal++;
+
+  }
+});
+
+
+
+
+
+// start the game
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
